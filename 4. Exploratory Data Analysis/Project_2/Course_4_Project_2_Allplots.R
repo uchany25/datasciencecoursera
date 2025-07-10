@@ -90,4 +90,10 @@ ggplot(df_plot6, aes(factor(year), Emissions/10^5, fill = City))+
         labs(x = "Year", y = expression("Total PM"[2.5]* " Emissions"))+
         labs(title = "Baltimore City Vs. Los Angeles County, Compare emissions from motor vehicle sources")
 
+ggplot(df_plot6, aes(factor(year), Emissions/10^5, fill = City))+
+  geom_bar(stat = "identity", position = "dodge")+
+  labs(x = "Year", y = expression("Total PM"[2.5]* " Emissions"))+
+  labs(title = "Baltimore City Vs. Los Angeles County, Compare emissions from motor vehicle sources")
+
+
 dev.off()
