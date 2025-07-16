@@ -1,8 +1,7 @@
 ---
-title: 'Reproducible Research: Peer Assessment 1'
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Project 1"
+author: "Yuchan Jeong"
+date: "7/16/2025"
 ---
 ## Loading and preprocessing the data
 
