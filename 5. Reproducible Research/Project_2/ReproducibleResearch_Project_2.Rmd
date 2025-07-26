@@ -218,7 +218,6 @@ ggplot(economy_problem, aes(x = reorder(EVTYPE, -value), y = value))+geom_col(ae
 As you see the bar graph, Flood is the most impactful event type in the US regarding property cost damage, while Drought is the most impactful event type in the US regarding crop cost damage.
 ```
 
-
 ```{undefined eval=FALSE, include=FALSE}
 ### This chunk is to show how render() function work
 
@@ -227,5 +226,9 @@ As you see the bar graph, Flood is the most impactful event type in the US regar
 ### library(markdown)
 
 ### render("ReproducibleResearch_Project_2.Rmd", output_file = "ReproducibleResearch_Project_2.html")
+
+### render("ReproducibleResearch_Project_2.Rmd", output_format = "md_document", output_file = "ReproducibleResearch_Project_2.md")
+
+### render("your_report.Rmd", output_format = "md_document", output_file = "your_report.md")
 
 ```
