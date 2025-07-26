@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 ---
 title: "Health and Economic Impacts of US Storm Analysis"
 author: "Yuchan Jeong"
@@ -376,7 +375,6 @@ df_storms$CROPDMGEXP <- CROPDMGEXP_numeric[df_storms$CROPDMGEXP]
 In this part, we are converting the codes into numeric.
 ```
 
-
 ### 2.5 Making Economic Cost Columns
 ```{r}
 df_storms <- transform(df_storms, PROPCOST = df_storms$PROPDMG*df_storms$PROPDMGEXP, CROPCOST = df_storms$CROPDMG*df_storms$CROPDMGEXP)
@@ -434,5 +432,4 @@ ggplot(economy_problem, aes(x = reorder(EVTYPE, -value), y = value))+geom_col(ae
 
 ```
 As you see the bar graph, Flood is the most impactful event type in the US regarding property cost damage, while Drought is the most impactful event type in the US regarding crop cost damage.
->>>>>>> 9df629c1c4bb47dd410cc4129f293bb9c3276e71
 ```
