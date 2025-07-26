@@ -1,0 +1,218 @@
+---
+title: "Health and Economic Impacts of US Storm Analysis"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## 1: Synopsis
+```
+In this project, we will explore the effect caused by storms and other severe weather events that impact both public health and the economy such as fatalities, injuries, and property damage. Our primary goal is to identify ways to prevent these dangerous outcomes as much as possible through further analysis. 
+
+The database used in this analysis is the storm database from the U.S National Oceanic and Atmospheric Administration's (NOAA). The data is stored in a CSV file named StormData.csv and covers the period from 1950 to November 2011. It includes information about when and where major storms and weather event occured in the United States, as well as estimates of any faltalities, injuries, and property damage.
+
+You can download the file using the following link:
+[StormData.csv]("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2")
+
+The analysis will investigate which types of events are most harmful on:
+
+1. Healthy
+
+2. Property and crops (Economic consequences)
+
+```
+
+## 2: Data Processing
+
+### 2.1: Data Loading
+```{r}
+if (isFALSE(("StormData.csv" %in% list.files(getwd())))) {
+        url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
+        download.file(url, file.path(getwd(), "StormData.csv"))
+        df <- read.csv("StormData.csv")
+} else df <- read.csv("StormData.csv")
+
+head(df)
+```
+
+### 2.2 Data Preprocessing
+```{r}
+col_selected = c("EVTYPE", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")
+df_storms <- df[, col_selected]
+```
+
+```
+We will select only the following seven variables: EVTYPE, FATALITIES, INJURIES, PROPDMG, PROPDMGEXP, CROPDMG, and CROPDMGEXP. And we will make a new data frame named df_storms.
+```
+
+```{r}
+df_storms$EVTYPE_cleaned <- toupper(df_storms$EVTYPE)
+df_storms$EVTYPE_cleaned <- gsub("[0-9]", "", df_storms$EVTYPE_cleaned)
+df_storms$EVTYPE_cleaned <- gsub("\\(.*\\)", "", df_storms$EVTYPE_cleaned)
+df_storms$EVTYPE_cleaned <- trimws(df_storms$EVTYPE_cleaned)
+df_storms$EVTYPE_cleaned <- gsub("\\s+", " ", df_storms$EVTYPE_cleaned)
+```
+
+```
+We observe that the EVTYPE variable contains many typos and is quite messy. So we will clean the text and store in a new variable named EVTYPE_cleaned.
+```
+
+### 2.3 Hierarchical clustering
+
+```{r}
+library(stringdist)
+unique_evtypes <- unique(df_storms$EVTYPE_cleaned)
+dist_matrix <- stringdistmatrix(unique_evtypes, unique_evtypes, method = "lv")
+rownames(dist_matrix) <- unique_evtypes
+colnames(dist_matrix) <- unique_evtypes
+
+hc <- hclust(as.dist(dist_matrix), method = "single")
+
+plot(hc, hang = -1)
+```
+
+```
+Now, we are using hierarchical clustering to identify potential similarities and redundancies within our EVTYPE_cleaned variable. We first calculate the Levenshtein distance between every pair of unique storm event types. The distance tells us how many single- character edits are needed to transform one event type string into another, effectively quantifying their textual similarity.
+
+Then, we apply hierarchical clustering with a 'single linkage' method to these distances. This process iteratively merge the closet pairs of event types (or cluster event types) until all event types are grouped into a single large cluster.
+
+The resulting dendrogram visually represents this merge process.
+```
+
+```{r}
+clusters_h1 = cutree(hc, h = 1)
+grouped_evtypes_list <- split(hc$labels, clusters_h1)
+cluster_lengths <- sapply(grouped_evtypes_list, length)
+
+multi_member_clusters <- grouped_evtypes_list[cluster_lengths > 1]
+
+mapping_dict_draft <- list()
+for (i in seq_along(grouped_evtypes_list)) {
+        cluster_members <- grouped_evtypes_list[[i]]
+        
+        standard_name <- cluster_members[1]
+        
+        for (member in cluster_members) {
+                mapping_dict_draft[[member]] <- standard_name
+        }
+}
+
+mapping_dict_draft[["FOG"]] <- "FOG"
+mapping_dict_draft[["VOG"]] <- "VOG"
+mapping_dict_draft[["SUMMARY OF MAY AM"]] <- "SUMMARY OF MAY AM"
+mapping_dict_draft[["SUMMARY OF MAY PM"]] <- "SUMMARY OF MAY PM"
+mapping_dict_draft[["HAIL .)"]] <- "HAIL"
+mapping_dict_draft[["HAIL ."]] <- "HAIL"
+
+mapping_df <- data.frame(
+        original_evtype = names(mapping_dict_draft),
+        standard_evtype = unlist(mapping_dict_draft),
+        stringsAsFactors = FALSE
+)
+
+final_mapping_df <- mapping_df
+
+final_mapping_dict <- setNames(final_mapping_df$standard_evtype, final_mapping_df$original_evtype)
+df_storms$EVTYPE_standardized <- final_mapping_dict[df_storms$EVTYPE_cleaned]
+```
+
+```
+we are cutting tree at a height of 1. After checking mapping_dict_draft, we observed that some clusters incorrectly grouped distinct event types. Therefore, we manually split and adjusted these mappings. The refined clusters are then stored in a new variable called EVTYPE_standardized within our df_storms dataset.
+```
+
+```{r}
+df_storms <- df_storms[(df_storms$EVTYPE_standardized != "?" & (df_storms$INJURIES > 0 | df_storms$FATALITIES > 0 | df_storms$PROPDMG > 0 | df_storms$CROPDMG > 0)), c("EVTYPE_standardized", "FATALITIES", "INJURIES", "PROPDMG", "PROPDMGEXP", "CROPDMG", "CROPDMGEXP")]
+
+EXP_col <- c("PROPDMGEXP", "CROPDMGEXP")
+df_storms[EXP_col] <- lapply(df_storms[,EXP_col], toupper)
+```
+
+```
+We are excluding the value "?" from EVTYPE_standardized. And we are filtering out rows that none of the impact columns (INJURIES, FATALITIES, PROPDMG, or CROPDMG) have a value greater than zero. In other words, we retain only those storm events that resulted in at least one injury, fatality, property damage, or crop damage.
+```
+```{r include=FALSE}
+rmve <- setdiff(ls(), "df_storms")
+rm(list = rmve)
+rm("rmve")
+### This chunk is to clean up the Environment. But I won't show this chunk on display
+```
+
+### 2.4 Converting Exponent Columns 
+```{r}
+options(scipen = 999)
+sort(unique(df_storms$PROPDMGEXP))
+sort(unique(df_storms$CROPDMGEXP))
+
+df_storms$PROPDMGEXP[df_storms$PROPDMGEXP == ""] <- "EMPTY"
+df_storms$CROPDMGEXP[df_storms$CROPDMGEXP == ""] <- "EMPTY"
+
+PROPDMGEXP_numeric <- c("EMPTY" = 10^0, "-" = 10^0, "+" = 10^0, "0" = 10^0, "2" = 10^2, "3" = 10^3, "4" = 10^4, "5" = 10^5, "6" = 10^6, "7" = 10^7, "B" = 10^9, "H" = 10^2, "K" = 10^3, "M" = 10^6)
+CROPDMGEXP_numeric <- c("EMPTY" = 10^0, "?" = 10^0, "0" = 10^0, "K" = 10^3, "M" = 10^6, "B" = 10^9)
+
+df_storms$PROPDMGEXP <- PROPDMGEXP_numeric[df_storms$PROPDMGEXP]
+df_storms$CROPDMGEXP <- CROPDMGEXP_numeric[df_storms$CROPDMGEXP]
+```
+
+```
+In this part, we are converting the codes into numeric.
+```
+
+
+### 2.5 Making Economic Cost Columns
+```{r}
+df_storms <- transform(df_storms, PROPCOST = df_storms$PROPDMG*df_storms$PROPDMGEXP, CROPCOST = df_storms$CROPDMG*df_storms$CROPDMGEXP)
+```
+
+```
+In this step, we are calculating the total estimated costs of property and crop damage and adding them as new variables to our df_storms dataset.
+```
+### 2.6 Total Economy Damage Cost
+```{r}
+storms_cost <- aggregate(cbind(df_storms$PROPCOST, df_storms$CROPCOST, df_storms$PROPCOST+df_storms$CROPCOST) ~ df_storms$EVTYPE_standardized, data = df_storms, sum)
+
+colnames(storms_cost) <- c("EVTYPE", "PROPCOST", "CROPCOST", "TOTALCOST")
+storms_cost <- storms_cost[order(storms_cost$TOTALCOST, decreasing = TRUE),][1:10,]
+
+head(storms_cost)
+```
+
+### 2.7 Total health Damage Cost
+```{r}
+storms_DMG <- aggregate(cbind(df_storms$FATALITIES, df_storms$INJURIES, df_storms$FATALITIES+df_storms$INJURIES) ~ df_storms$EVTYPE_standardized, data = df_storms, sum)
+
+colnames(storms_DMG) <- c("EVTYPE", "INJURIES", "FATALITIES", "TOTALDMG")
+
+storms_DMG <- storms_DMG[order(storms_DMG$TOTALDMG, decreasing = TRUE),][1:10,]
+
+head(storms_DMG)
+```
+
+## 3: Results
+
+### 3.1 Most population problem
+```{r}
+library(ggplot2)
+library(reshape2)
+
+population_problem <- melt(storms_DMG, id.vars = "EVTYPE", variable.name = "health_type")
+
+ggplot(population_problem, aes(x = reorder(EVTYPE, -value), y = value))+geom_col(aes(fill = health_type),position="dodge")+theme(axis.text.x = element_text(angle=45, hjust=1))+xlab("Event Type")+ylab("Frequency Count")+ggtitle("TOP 10 US storm events impact Population problem")
+
+```
+
+```
+As you see the bar graph, Tornado is the most impactful event type in the US regarding population problem.
+
+```
+
+### 3.2 Most Economy problem
+```{r}
+economy_problem <- melt(storms_cost, id.vars = "EVTYPE", variable.name = "Damage_type")
+
+ggplot(economy_problem, aes(x = reorder(EVTYPE, -value), y = value))+geom_col(aes(fill = Damage_type), position = "dodge")+theme(axis.text.x = element_text(angle = 45, hjust = 1))+xlab("Event Type")+ylab("Damage Cost")+ggtitle("TOP 10 US storm events impact Economic problem")
+```
+
+
+```
+As you see the bar graph, Flood is the most impactful event type in the US regarding property cost damage, while Drought is the most impactful event type in the US regarding crop cost damage.
+```
