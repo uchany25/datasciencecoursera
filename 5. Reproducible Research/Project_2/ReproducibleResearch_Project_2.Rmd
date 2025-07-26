@@ -26,7 +26,7 @@ The analysis will investigate which types of events are most harmful on:
 
 ### 2.1: Data Loading
 ```{r}
-setwd(file.path(getwd(), "5. Reproducible Research/Project_2"))
+setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/5. Reproducible Research/Project_2")
 
 if (isFALSE(("StormData.csv" %in% list.files(getwd())))) {
         url <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"
