@@ -1,0 +1,173 @@
+---
+title: "Project"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+# Part 1
+
+## Instructions
+
+1. Show the sample mean and compare it to the theoretical mean of the distribution.
+2. Show how variable the sample is (via variance) and compare it to the theoretical variance of the distribution.
+3. Show that the distribution is approximately normal.
+
+
+```{r settings}
+set.seed(42)
+n <- 40
+lambda <- 0.2
+simulations <- 1000
+simulated_exponentials <- replicate(simulations, rexp(n, lambda))
+
+mean_exp <- apply(simulated_exponentials, 2, mean)
+```
+
+## Question 1
+Show the sample mean and compare it to the theoretical mean of the distribution.
+
+```{r}
+analytical_mean <- mean(mean_exp)
+```
+
+```{r}
+theoretical_mean <- 1/lambda
+```
+
+```{r}
+hist(mean_exp, xlab = "mean", main = "Exponential Function Simulations")
+abline(v = analytical_mean, col = "red")
+abline(v = theoretical_mean, col = "blue")
+```
+``` {r}
+cat("As you see the histogram above, the theoretical mean is", theoretical_mean, ", while the analythical mean is", analytical_mean, ".", "It shows that the center of distribution of averages of 40 exponentials is very close to the theoretical center of the distribution.")
+```
+
+## Question 2
+Show how variable the sample is (via variance) and compare it to the theoretical variance of the distribution.
+
+```{r}
+analytical_sd <- sd(mean_exp); analytical_sd
+```
+
+```{r}
+theoretical_sd <- (1/lambda)/sqrt(n); theoretical_sd
+```
+
+
+```{r}
+analytical_sd^2
+```
+
+```{r}
+theoretical_sd^2
+```
+```{r}
+cat("The theorical variance is", theoretical_sd^2, ", and the analytical variance is", analytical_sd^2)
+```
+
+
+## Question 3
+Show that the distribution is approximately normal.
+
+```{r}
+xfit <- seq(min(mean_exp), max(mean_exp), length=100)
+yfit <- dnorm(xfit, mean=1/lambda, sd=(1/lambda/sqrt(n)))
+hist(mean_exp,breaks=n,prob=T,col="lightblue",xlab = "means",main="Density of means",ylab="density")
+lines(xfit, yfit, pch=22, col="black", lty=5)
+```
+
+```{r}
+# compare the distribution of averages of 40 exponentials to a normal distribution
+qqnorm(mean_exp)
+qqline(mean_exp, col = 2)
+```
+
+
+# Part 2
+
+## Instructions
+1. Load the ToothGrowth data and perform some basic exploratory data analyses
+2. Provide a basic summary of the data.
+3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+4. State your conclusions and the assumptions needed for your conclusions.
+
+## Load "ToothGrowth" dataset
+```{r}
+data(ToothGrowth)
+```
+
+## Exploartory Data Analysis
+```{r}
+dim(ToothGrowth)
+```
+```
+It shows that the data "ToothGrowth" has 60 rows and 3 columns.
+```
+
+```{r}
+str(ToothGrowth)
+```
+```
+ToothGrowth has three variables: two numeric variables (len & dose) and one factor variable (supp).
+```
+
+```{r}
+summary(ToothGrowth)
+```
+## Check levels of the variable "supp"
+```{r}
+unique(ToothGrowth$supp)
+```
+## Check levels of the variable "dose"
+```{r}
+unique(ToothGrowth$dose)
+```
+## Check missing values
+```{r}
+sum(is.na(ToothGrowth))
+```
+## Compare tooth growth by supp
+We know that supp has two levels "VC" and "OJ".
+Let $H_0: \theta = 0$ and $H_\alpha: \theta \neq 0$, while $\theta$ shows the difference in the means. $\alpha = 0.05$
+```{r}
+tg_oj <- ToothGrowth$len[ToothGrowth$supp == "OJ"]
+tg_vc <- ToothGrowth$len[ToothGrowth$supp == "VC"]
+
+t.test(tg_oj, tg_vc, alt = "two.sided")
+```
+```
+The given p-value is 0.06, so we fail to reject the null hypothesis. The 95% CI for the difference in means is approximately (-0.17, 7.57). It also means that we fail to reject the null hypothesis.
+```
+
+## Compare tooth growth by dose
+```{r}
+tg_05 <- ToothGrowth$len[ToothGrowth$dose == 0.5]
+tg_10 <- ToothGrowth$len[ToothGrowth$dose == 1.0]
+tg_20 <- ToothGrowth$len[ToothGrowth$dose == 2.0]
+```
+
+## Compare tooth growth by dose is 0.5 vs. 1.0
+```{r}
+t.test(tg_05, tg_10, alt = "two.sided")
+```
+```
+The given p-value is under 0.05, so we reject the null hypothesis. The 95% CI for the difference in means is approximately (-11.9, -6.27). It also means that we reject the null hypothesis.
+```
+
+## Compare tooth growth by dose is 1.0 vs. 2.0
+```{r}
+t.test(tg_10, tg_20, alt = "two.sided")
+```
+```
+The given p-value is under 0.05, so we reject the null hypothesis. The 95% CI for the difference in means is approximately (-8.99, -3.73). It also means that we reject the null hypothesis.
+```
+
+## Compare tooth growth by dose is 0.5 vs. 2.0
+```{r}
+t.test(tg_05, tg_20, alt = "two.sided")
+```
+```
+The given p-value is under 0.05, so we reject the null hypothesis. The 95% CI for the difference in means is approximately (-18.1, -12.83). It also means that we reject the null hypothesis.
+```
