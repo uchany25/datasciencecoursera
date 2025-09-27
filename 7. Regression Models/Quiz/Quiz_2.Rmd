@@ -1,0 +1,63 @@
+---
+title: "Quiz_2"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+#1
+Consider the following data with x as the predictor and y as as the outcome.
+```{r}
+x <- c(0.61, 0.93, 0.83, 0.35, 0.54, 0.16, 0.91, 0.62, 0.62)
+y <- c(0.67, 0.84, 0.6, 0.18, 0.85, 0.47, 1.1, 0.65, 0.36)
+```
+
+Give a P-value for the two sided hypothesis test of whether $\beta_1$ from a linear regression model is 0 or not.
+```{r}
+fit <- lm(y~x)
+summary(fit)
+```
+#2
+Consider the previous problem, give the estimate of the residual standard deviation.
+```{r}
+fit$residual
+```
+#3
+In the **mtcars** data set, fit a linear regression model of weight (predictor) on mpg (outcome). Get a 95% confidence interval for the expected mpg at the average weight. What is the lower endpoint?
+```{r}
+data(mtcars)
+fit2 <- lm(mpg ~ wt, data = mtcars)
+
+average_wt <- mean(mtcars$wt)
+new_data <- data.frame(wt = average_wt)
+
+predict(fit2, newdata = new_data, interval = "confidence", level = 0.95)
+```
+
+#5
+Consider again the **mtcars** data set and a linear regression model with mpg as predicted by weight (1,000 lbs). A new car is coming weighing 3000 pounds. Construct a 95% prediction interval for its mpg. What is the upper endpoint?
+```{r}
+new_data_wt3000 <- data.frame(wt = 3)
+predict(fit2, newdata = new_data_wt3000, interval = "prediction", level = 0.95)
+```
+
+#6
+Consider again the **mtcars** data set and a linear regression model with mpg as predicted by weight (in 1,000 lbs). A “short” ton is defined as 2,000 lbs.  Construct a  95% confidence interval for the expected change in mpg per 1 short ton increase in weight. Give the lower endpoint.
+```{r}
+ci_wt <- confint(fit2)
+2 * ci_wt["wt", ]
+```
+
+#9
+Refer back to the mtcars data set with mpg as an outcome and weight (wt) as the predictor. About what is the ratio of the the sum of the squared errors, $\sum^n_{i=1}(Y_i-\hat{Y_i})^2$ when comparing a model with just an intercept (denominator) to the model with the intercept and slope (numerator)?
+```{r}
+SSE <- sum(resid(fit2)^2)
+# OR SSE <- deviance(fit)
+
+SST <- sum((mtcars$mpg - mean(mtcars$mpg))^2)
+
+ratio <- SSE / SST
+
+R_squared <- summary(fit)$r.squared
+```
+
