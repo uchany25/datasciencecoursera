@@ -1,0 +1,65 @@
+---
+title: "Quiz_3"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+#1
+Consider the mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight as confounder. Give the adjusted estimate for the expected change in mpg comparing 8 cylinders to 4.
+
+```{r}
+data("mtcars")
+fit <- lm(mpg ~ as.factor(cyl) + wt, data = mtcars)
+summary(fit)
+```
+
+#2
+Consider the mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight as a possible confounding variable. Compare the effect of 8 versus 4 cylinders on mpg for the adjusted and unadjusted by weight models.  Here, adjusted means including the weight variable as a term in the regression model and unadjusted means the model without weight included. What can be said about the effect comparing 8 and 4 cylinders after looking at models with and without weight included?
+
+```{r}
+fit <- lm(mpg ~ as.factor(cyl) + wt, data = mtcars)
+summary(fit)
+```
+
+```{r}
+fit2 <- lm(mpg ~ as.factor(cyl), data = mtcars)
+summary(fit2)
+```
+#3
+Consider the mtcars data set. Fit a model with mpg as the outcome that considers number of cylinders as a factor variable and weight as confounder. Now fit a second model with mpg as the outcome model that considers the interaction between number of cylinders (as a factor variable) and weight. Give the P-value for the likelihood ratio test comparing the two models and suggest a model using 0.05 as a type I error rate significance benchmark.
+```{r}
+
+fit3 <- lm(mpg ~ factor(cyl) + wt, data = mtcars)
+fit4 <- lm(mpg ~ factor(cyl)*wt, data = mtcars)
+
+anova(fit3, fit4)
+```
+
+#4
+Consider the mtcars data set. Fit a model with mpg as the outcome that includes number of cylinders as a factor variable and weight inlcuded in the model as
+```{r}
+lm(mpg ~ I(wt * 0.5) + factor(cyl), data = mtcars)
+```
+
+#5
+Consider the following data set 
+Give the hat diagonal for the most influential point
+```{r}
+x <- c(0.586, 0.166, -0.042, -0.614, 11.72)
+y <- c(0.549, -0.026, -0.127, -0.751, 1.344)
+
+influence(lm(y ~ x))$hat
+```
+
+
+#6
+Consider the following data set
+Give the slope dfbeta for the point with the highest hat value.
+```{r}
+x <- c(0.586, 0.166, -0.042, -0.614, 11.72)
+y <- c(0.549, -0.026, -0.127, -0.751, 1.344)
+
+influence.measures(lm(y ~ x))
+```
+
