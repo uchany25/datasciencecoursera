@@ -1,0 +1,112 @@
+---
+title: "Data analysis practice with feedback"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+devtools::install_github("jhudsl/collegeIncome")
+library(collegeIncome)
+data(college)
+```
+
+
+```{r}
+devtools::install_github("jhudsl/matahari")
+library(matahari)
+```
+
+```{r}
+dance_start(value = FALSE, contents = FALSE)
+```
+
+```{r package}
+library(dplyr)
+library(ggplot2)
+library(car)
+```
+
+
+# EDA(Exploration Data Analysis)
+```{r}
+str(college)
+```
+```{r}
+summary(college$median)
+```
+```{r}
+options(scipen = 999) 
+hist(college$median,
+     main = "Median Annual Income Distribution",
+     xlab = "Median Income (USD)",
+     breaks = 20,
+     col = "skyblue",
+     border = "black")
+```
+
+```{r}
+sum(is.na(college$median))
+```
+```{r}
+sum(is.na(college$major_category))
+```
+
+```{r}
+college_clean <- na.omit(college)
+college_clean$major_category <- as.factor(college_clean$major_category) 
+```
+
+```{r}
+summary_stats <- college_clean %>%
+  group_by(major_category) %>%
+  summarise(
+    N = n(),
+    Mean_Median = mean(median),
+    SD_Median = sd(median),
+    Min_Median = min(median),
+    Max_Median = max(median)
+  )
+print(summary_stats)
+```
+```{r}
+ggplot(college_clean, aes(x = major_category, y = median, fill = major_category)) +
+  geom_boxplot() +
+  labs(
+    title = "Compare Income Median by Major Category",
+    x = "Major Category",
+    y = "Income Median"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + coord_flip()
+```
+
+# ANOVA
+
+#Check Nomarlity
+```{r}
+aov_model <- aov(median ~ major_category, data = college_clean)
+residuals <- residuals(aov_model)
+shapiro.test(residuals[1:5000])
+```
+```{r}
+qqnorm(residuals)
+qqline(residuals, col = "red")
+```
+
+
+# Check Homogeneity of Variances
+```{r}
+leveneTest(median ~ major_category, data = college_clean)
+```
+
+# One-Way ANOVA
+```{r}
+aov_model <- aov(median ~ major_category, data = college_clean)
+summary(aov_model)
+```
+```
+No, Based on the ANOVA results, there is no statistically significant association between the college Major_category and the Median annual income of full-time, year-round workers. The P-value obtained from the ANOVA test (0.282) is above the conventional α threshold of 0.05. This suggests that the observed differences in mean median income across the major categories could reasonably be due to random chance, and not a true difference in the underlying population means.
+```
+
+```{r}
+dance_save("C:/Users/PC/Documents/GitHub/datasciencecoursera/7. Regression Models/Quiz/college_major_analysis.rds")
+```
