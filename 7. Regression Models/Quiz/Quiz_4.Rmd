@@ -1,0 +1,70 @@
+---
+title: "Quiz_4"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r package}
+library(MASS)
+```
+
+#1
+Consider the space shuttle data shuttle in the MASS library. Consider modeling the use of the autolander as the outcome (variable name use). Fit a logistic regression model with autolander (variable auto) use (labeled as "auto" 1) versus not (0) as predicted by wind sign (variable wind). Give the estimated odds ratio for autolander use comparing head winds, labeled as "head" in the variable headwind (numerator) to tail winds (denominator).
+```{r}
+data(shuttle)
+fit <- glm(use ~ wind, family = "binomial", data = shuttle)
+summary(fit)
+```
+
+```{r}
+exp(summary(fit)$coef[2])
+```
+
+#2
+Consider the previous problem. Give the estimated odds ratio for autolander use comparing head winds (numerator) to tail winds (denominator) adjusting for wind strength from the variable magn.
+```{r}
+fit2 <- glm(use ~ wind + magn, family = "binomial", data = shuttle)
+log_odds <- coef(fit2)
+exp(log_odds)
+```
+
+
+
+#3
+If you fit a logistic regression model to a binary variable, for example use of the autolander, then fit a logistic regression model for one minus the outcome (not using the autolander) what happens to the coefficients?
+
+```
+The coefficients reverse their signs.
+```
+
+#4
+Consider the insect spray data InsectSprays. Fit a Poisson model using spray as a factor level. Report the estimated relative rate comapring spray A (numerator) to spray B (denominator).
+
+$RR = exp(\hat{\beta}_{G_1}} - \hat{\beta}_{G_2}})$
+
+```{r}
+data(InsectSprays)
+fit3 <- glm(count ~ spray, family = "poisson", data = InsectSprays)
+summary(fit3)
+```
+```{r}
+log_odds2 <- summary(fit3)$coef
+exp(0 - log_odds2[2])
+```
+
+#6
+Using a knot point at 0, fit a linear model that looks like a hockey stick with two lines meeting at x=0. Include an intercept term, x and the knot point term. What is the estimated slope of the line after 0?
+```{r}
+x <- -5:5
+y <- c(5.12, 3.93, 2.67, 1.87, 0.52, 0.08, 0.93, 2.05, 2.54, 3.87, 4.97)
+knot_k <- 0
+z <- pmax(0, x - knot_k)
+model <- lm(y ~ x + z)
+
+coefficients <- coef(model)
+beta_1 <- coefficients["x"]
+beta_2 <- coefficients["z"]
+
+beta_1 + beta_2
+```
