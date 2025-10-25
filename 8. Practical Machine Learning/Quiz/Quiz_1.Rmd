@@ -1,0 +1,159 @@
+---
+title: "Quiz_1"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+library(AppliedPredictiveModeling)
+library(caret)
+library(ggplot2)
+library(Hmisc)
+```
+
+
+
+#1
+Load the Alzheimer's disease data using the commands:
+```{r}
+data(AlzheimerDisease)
+```
+Which of the following commands will create non-overlapping training and test sets with about 50% of the observations assigned to each? 
+```{r}
+adData = data.frame(diagnosis,predictors)
+trainIndex = createDataPartition(diagnosis, p = 0.50,list=FALSE)
+training = adData[trainIndex,]
+testing = adData[-trainIndex,]
+```
+
+#2
+Load the cement data using the commands:
+```{r}
+data(concrete)
+set.seed(1000)
+inTrain = createDataPartition(mixtures$CompressiveStrength, p = 3/4)[[1]]
+training = mixtures[ inTrain,]
+testing = mixtures[-inTrain,]
+```
+Make a plot of the outcome (CompressiveStrength) versus the index of the samples. Color by each of the variables in the data set (you may find the cut2() function in the Hmisc package useful for turning continuous covariates into factors). What do you notice in these plots? 
+
+```{r}
+plot_data = training
+plot_data$Index = 1:nrow(training)
+
+covariate_names = setdiff(names(plot_data), c("CompressiveStrength", "Index"))
+
+plot_list = list()
+
+for (col_name in covariate_names) {
+  plot_data$ColorFactor = cut2(plot_data[[col_name]], g=5)
+  
+  p = ggplot(plot_data, aes(x = Index, y = CompressiveStrength, color = ColorFactor)) +
+    geom_point(alpha = 0.6) +
+    labs(
+      title = paste("CompressiveStrength vs. Sample Index, Colored by:", col_name),
+      x = "Sample Index (Training Data)",
+      y = "CompressiveStrength",
+      color = paste(col_name, " (Quantiles)")
+    ) +
+    theme_minimal()
+  
+  print(p)
+  plot_list[[col_name]] = p
+}
+```
+
+#3
+Load the cement data using the commands:
+```{r}
+data(concrete)
+set.seed(1000)
+inTrain = createDataPartition(mixtures$CompressiveStrength, p = 3/4)[[1]]
+training = mixtures[ inTrain,]
+testing = mixtures[-inTrain,]
+```
+Make a histogram and confirm the SuperPlasticizer variable is skewed. Normally you might use the log transform to try to make the data more symmetric. Why would that be a poor choice for this variable?
+```{r}
+plasticizer_plot <- ggplot(training, aes(x = Superplasticizer)) +
+  geom_histogram(bins = 30, fill = "#1E90FF", color = "white", alpha = 0.8) +
+  labs(
+    title = "Distribution of Superplasticizer in Training Data",
+    subtitle = "Confirming high right-skewness and excess zeros",
+    x = "Superplasticizer Amount (kg/m³)",
+    y = "Frequency"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"))
+
+print(plasticizer_plot)
+```
+
+#4
+Load the Alzheimer's disease data using the commands:
+
+```{r}
+set.seed(3433)
+data(AlzheimerDisease)
+adData = data.frame(diagnosis,predictors)
+inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
+```
+Find all the predictor variables in the training set that begin with IL. Perform principal components on these variables with the preProcess() function from the caret package. Calculate the number of principal components needed to capture 90% of the variance. How many are there?
+```{r}
+il_predictors <- names(training)[startsWith(names(training), "IL")]
+
+training_il <- training[, il_predictors]
+pca_model <- preProcess(training_il,  method = "pca", thresh = 0.90)
+
+pca_model$numComp
+```
+#5
+Load the Alzheimer's disease data using the commands:
+```{r}
+set.seed(3433)
+data(AlzheimerDisease)
+adData = data.frame(diagnosis,predictors)
+inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training = adData[ inTrain,]
+testing = adData[-inTrain,]
+```
+Create a training data set consisting of only the predictors with variable names beginning with IL and the diagnosis. Build two predictive models, one using the predictors as they are and one using PCA with principal components explaining 80% of the variance in the predictors. Use method="glm" in the train function. 
+
+What is the accuracy of each method in the test set? Which is more accurate?
+
+```{r}
+il_predictors <- names(training)[startsWith(names(training), "IL")]
+cols_to_keep <- c("diagnosis", il_predictors)
+
+training_subset <- training[, cols_to_keep]
+testing_subset <- testing[, cols_to_keep]
+
+model_nonPCA <- train(diagnosis ~ ., data = training_subset, method = "glm",  preProcess = c("center", "scale"))
+
+model_PCA <- train(diagnosis ~ ., data = training_subset,
+                   method = "glm",
+                   preProcess = "pca",
+                   trControl = trainControl(preProcOptions = list(thresh = 0.8)))
+
+pred_nonPCA <- predict(model_nonPCA, testing_subset)
+pred_PCA    <- predict(model_PCA, testing_subset)
+
+acc_nonPCA <- confusionMatrix(pred_nonPCA, testing_subset$diagnosis)$overall['Accuracy']
+acc_PCA    <- confusionMatrix(pred_PCA, testing_subset$diagnosis)$overall['Accuracy']
+
+acc_nonPCA
+acc_PCA
+```
+
+
+
+
+
+
+
+
+
+
+
+
