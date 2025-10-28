@@ -1,0 +1,171 @@
+---
+title: "Quiz_3"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(AppliedPredictiveModeling)
+library(ggplot2)
+library(lattice)
+library(caret)
+library(ElemStatLearn)
+```
+
+
+#1
+1. Subset the data to a training set and testing set based on the Case variable in the data set. 
+2. Set the seed to 125 and fit a CART model to predict Class with the rpart method using all predictor variables and default caret settings. 
+3. In the final model what would be the final model prediction for cases with the following variable values:
+a. TotalIntench2 = 23,000; FiberWidthCh1 = 10; PerimStatusCh1=2 
+b. TotalIntench2 = 50,000; FiberWidthCh1 = 10;VarIntenCh4 = 100 
+c. TotalIntench2 = 57,000; FiberWidthCh1 = 8;VarIntenCh4 = 100 
+d. FiberWidthCh1 = 8;VarIntenCh4 = 100; PerimStatusCh1=2 
+TIP: Plot the resulting tree and to use the plot to answer this question.
+
+
+```{r}
+data(segmentationOriginal)
+training <- subset(segmentationOriginal, Case == "Train")
+test <- subset(segmentationOriginal, Case == "Test")
+predictors <- setdiff(names(training), c("Case", "Class", "Cell"))
+set.seed(125)
+```
+
+
+# a. TotalIntench2 = 23,000; FiberWidthCh1 = 10; PerimStatusCh1 = 2 
+```{r}
+predictors_a <- c("TotalIntenCh2", "FiberWidthCh1", "PerimStatusCh1")
+modFit_a <- train(x = training[, predictors_a], y = training$Class, method = "rpart")
+
+new_data_a <- data.frame(
+  TotalIntenCh2 = 23000,
+  FiberWidthCh1 = 10,
+  PerimStatusCh1 = 2
+)
+
+predict(modFit_a, newdata = new_data_a)
+```
+
+# b. TotalIntench2 = 50,000; FiberWidthCh1 = 10;VarIntenCh4 = 100 
+
+```{r}
+predictors_b <- c("TotalIntenCh2", "FiberWidthCh1", "VarIntenCh4")
+
+modFit_b <- train(x = training[, predictors_b], y = training$Class, method = "rpart")
+
+new_data_b <- data.frame(
+  TotalIntenCh2 = 50000,
+  FiberWidthCh1 = 10,
+  VarIntenCh4 = 100
+)
+
+predict(modFit_b, newdata = new_data_b)
+
+```
+
+# c. TotalIntench2 = 57,000; FiberWidthCh1 = 8;VarIntenCh4 = 100 
+
+```{r}
+predictors_c <- c("TotalIntenCh2", "FiberWidthCh1", "VarIntenCh4")
+
+modFit_c <- train(x = training[, predictors_c], y = training$Class, method = "rpart")
+
+new_data_c <- data.frame(
+  TotalIntenCh2 = 57000,
+  FiberWidthCh1 = 8,
+  VarIntenCh4 = 100
+)
+
+predict(modFit_c, newdata = new_data_c)
+```
+
+
+# d. FiberWidthCh1 = 8;VarIntenCh4 = 100; PerimStatusCh1=2 
+
+
+```{r}
+predictors_d <- c("FiberWidthCh1", "VarIntenCh4", "PerimStatusCh1")
+
+modFit_d <- train(x = training[, predictors_d], y = training$Class, method = "rpart")
+
+new_data_d <- data.frame(
+  FiberWidthCh1 = 8,
+  VarIntenCh4 = 100,
+  PerimStatusCh1 = 2
+)
+
+predict(modFit_d, newdata = new_data_d)
+```
+
+
+#3
+
+```{r}
+load("C:\\Users\\PC\\Documents\\GitHub\\datasciencecoursera\\8. Practical Machine Learning\\Quiz\\olive.rda")
+olive = olive[,-1]
+```
+
+```{r}
+treeFit <- rpart(Area ~., data = olive)
+modFit <- train(Area ~., data = olive, method = "rpart")
+
+newdata = as.data.frame(t(colMeans(olive)))
+
+predict(treeFit, newdata)
+predict(modFit, newdata)
+```
+```
+2.783. It is strange because Area should be a qualitative variable - but tree is reporting the average value of Area as a numeric variable in the leaf predicted for newdata
+```
+```{r}
+olive$Area <- as.factor(olive$Area)
+
+treeFit <- rpart(Area ~., data = olive)
+modFit <- train(Area ~., data = olive, method = "rpart")
+
+predict(treeFit, newdata)
+predict(modFit, newdata)
+```
+
+
+#4
+Load the South Africa Heart Disease Data and create training and test sets with the following code:
+
+```{r}
+library(ElemStatLearn)
+data(SAheart)
+set.seed(8484)
+train = sample(1:dim(SAheart)[1], size = dim(SAheart)[1]/2, replace = FALSE)
+trainSA = SAheart[train, ]
+testSA  = SAheart[-train, ]
+```
+Then set the seed to 13234 and fit a logistic regression model  (method="glm", be sure to specify family="binomial") with Coronary Heart Disease (chd) as the outcome and age at onset, current alcohol consumption, obesity levels, cumulative tabacco, type-A behavior, and low density lipoprotein cholesterol as predictors. Calculate the misclassification rate for your model using this function and a prediction on the "response" scale:
+```{r}
+set.seed(13234)
+model <- train(
+  chd ~ age + alcohol + obesity + tobacco + typea + ldl,
+  data = trainSA,
+  method = "glm",
+  family = "binomial"
+)
+
+pred <- predict(model, newdata = testSA, type = "prob") # ❌ 여기선 확률이 안 나옴 (glm은 factor일 때만)
+```
+
+```{r}
+glm_fit <- model$finalModel
+
+pred <- predict(glm_fit, newdata = testSA, type = "response")
+
+missClass <- function(values, prediction){
+  sum(((prediction > 0.5) * 1) != values) / length(values)
+}
+
+train_error <- missClass(trainSA$chd, predict(glm_fit, newdata = trainSA, type = "response"))
+test_error  <- missClass(testSA$chd, pred)
+
+train_error
+test_error
+```
