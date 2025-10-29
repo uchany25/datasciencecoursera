@@ -1,0 +1,209 @@
+---
+title: "Quiz_4"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r}
+library(caret)
+library(gbm)
+library(caretEnsemble)
+library(MLmetrics)
+library(AppliedPredictiveModeling)
+library(elasticnet)
+library(lubridate) # For year function below #4
+library(forecast)
+library(e1071)
+```
+
+#2
+Set the seed to 62433 and predict diagnosis with all the other variables using a random forest ("rf"), boosted trees ("gbm") and linear discriminant analysis ("lda") model. Stack the predictions together using random forests ("rf"). What is the resulting accuracy on the test set? Is it better or worse than each of the individual predictions? 
+```{r}
+set.seed(3433)
+data(AlzheimerDisease)
+adData = data.frame(diagnosis,predictors)
+```
+
+```{r}
+inTrain = createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training = adData[inTrain,]
+testing = adData[-inTrain,]
+testing$diagnosis <- factor(testing$diagnosis, levels = levels(training$diagnosis))
+```
+
+```{r include=FALSE}
+set.seed(62433)
+control <- trainControl(
+  method = "repeatedcv",
+  number = 10, 
+  repeats = 3,   
+  savePredictions = "final",
+  classProbs = TRUE, 
+  summaryFunction = multiClassSummary
+)
+
+set.seed(62433)
+
+model_list <- caretList(
+  diagnosis ~ .,
+  data = training,
+  trControl = control,
+  metric = "Accuracy",
+  methodList = c("rf", "gbm", "lda")
+)
+```
+
+
+```{r}
+set.seed(62433)
+stack_rf <- caretStack(
+  model_list,
+  method = "rf",
+  metric = "Accuracy",
+  trControl = trainControl(method = "none") 
+)
+```
+
+```{r}
+pred_rf <- predict(model_list$rf, newdata = testing)
+acc_rf <- postResample(pred_rf, testing$diagnosis)['Accuracy']
+
+pred_gbm <- predict(model_list$gbm, newdata = testing)
+acc_gbm <- postResample(pred_gbm, testing$diagnosis)['Accuracy']
+
+pred_lda <- predict(model_list$lda, newdata = testing)
+acc_lda <- postResample(pred_lda, testing$diagnosis)['Accuracy']
+
+stack_pred <- predict(stack_rf, newdata = testing)
+stack_acc <- postResample(stack_pred, testing$diagnosis)['Accuracy']
+```
+
+```{r}
+# This is another way to solve Q2
+set.seed(3433)
+data(AlzheimerDisease)
+adData <- data.frame(diagnosis, predictors)
+inTrain <- createDataPartition(adData$diagnosis, p = 3/4)[[1]]
+training <- adData[inTrain, ]
+testing <- adData[-inTrain, ]
+```
+
+```{r}
+set.seed(62433)
+mod_rf  <- train(diagnosis ~ ., data = training, method = "rf")
+mod_gbm <- train(diagnosis ~ ., data = training, method = "gbm", verbose = FALSE)
+mod_lda <- train(diagnosis ~ ., data = training, method = "lda")
+```
+
+```{r}
+set.seed(62433)
+pred_rf  <- predict(mod_rf,  testing)
+pred_gbm <- predict(mod_gbm, testing)
+pred_lda <- predict(mod_lda, testing)
+
+predDF <- data.frame(pred_rf, pred_gbm, pred_lda, diagnosis = testing$diagnosis)
+```
+
+```{r}
+set.seed(62433)
+stack_mod <- train(diagnosis ~ ., data = predDF, method = "rf")
+stack_pred <- predict(stack_mod, predDF)
+
+acc_rf   <- confusionMatrix(pred_rf,  testing$diagnosis)$overall["Accuracy"]
+acc_gbm  <- confusionMatrix(pred_gbm, testing$diagnosis)$overall["Accuracy"]
+acc_lda  <- confusionMatrix(pred_lda, testing$diagnosis)$overall["Accuracy"]
+acc_stack <- confusionMatrix(stack_pred, testing$diagnosis)$overall["Accuracy"]
+
+accuracy_results <- data.frame(
+  Model <- c("Random Forest", "Boosted Trees", "LDA", "Stacked RF"),
+  Accuracy <- c(acc_rf, acc_gbm, acc_lda, acc_stack)
+)
+
+accuracy_results
+```
+
+
+#3
+Set the seed to 233 and fit a lasso model to predict Compressive Strength. Which variable is the last coefficient to be set to zero as the penalty increases? (Hint: it may be useful to look up ?plot.enet).
+```{r}
+set.seed(3523)
+data(concrete)
+
+inTrain <- createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+training <- concrete[ inTrain,]
+testing <- concrete[-inTrain,]
+```
+
+```{r}
+set.seed(233)
+x_train <- as.matrix(training[, -ncol(training)])
+y_train <- training$CompressiveStrength
+
+lasso_model <- enet(x = x_train, y = y_train, lambda = 0)
+
+mod_lasso <- train(CompressiveStrength ~., data = training, method = "lasso")
+```
+
+```{r}
+plot(mod_lasso$finalModel, xvar <- "penalty", use.color = TRUE)
+plot(lasso_model, xvar <- "penalty", use.color = TRUE, main = "Lasso Coefficient Path")
+```
+
+#4
+Fit a model using the bats() function in the forecast package to the training time series. Then forecast this model for the remaining time points. For how many of the testing points is the true value within the 95% prediction interval bounds? 
+
+```{r}
+setwd("C:\\Users\\PC\\Documents\\GitHub\\datasciencecoursera\\8. Practical Machine Learning\\Quiz")
+
+if (isFALSE(("gaData.csv" %in% list.files(getwd())))) {
+        url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/gaData.csv"
+        download.file(url, file.path(getwd(), "gaData.csv"))
+        dat <- read.csv("gaData.csv")
+} else dat <- read.csv("gaData.csv")
+```
+
+```{r}
+training <- dat[year(dat$date) < 2012,]
+testing <- dat[(year(dat$date)) > 2011,]
+tstrain <- ts(training$visitsTumblr)
+```
+
+```{r}
+model_bats <- bats(tstrain)
+h_test <- nrow(testing)
+forecast_bats <- forecast(model_bats, h = h_test, level = 95)
+
+actual_values = testing$visitsTumblr
+lower_95 = forecast_bats$lower[, "95%"]
+upper_95 = forecast_bats$upper[, "95%"]
+```
+
+```{r}
+is_in_interval = (actual_values >= lower_95) & (actual_values <= upper_95)
+count_in_interval = sum(is_in_interval)
+
+(count_in_interval / h_test) * 100
+```
+#5
+
+```{r}
+data(concrete)
+```
+
+```{r}
+set.seed(3523)
+inTrain = createDataPartition(concrete$CompressiveStrength, p = 3/4)[[1]]
+
+training <- concrete[inTrain,]
+testing <- concrete[-inTrain,]
+```
+
+```{r}
+set.seed(325)
+
+svmModel <- svm(CompressiveStrength ~ ., data = training)
+svmPred <- predict(svmModel, newdata = testing)
+
+sqrt(mean((testing$CompressiveStrength - svmPred)^2))
+```
+
