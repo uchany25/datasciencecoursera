@@ -1,0 +1,136 @@
+---
+title: "Project"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+```{r include=FALSE}
+library(caret)
+library(doParallel)
+```
+
+# 1. Introduction
+The objective of this project is to use machine learning to predict the manner in which an exercise was performed—correctly or in one of four incorrect ways. This is a classification problem where the target variable is classe, and the predictors are derived from accelerometer data collected from various locations (belt, forearm, arm, and dumbbell) on six participants.
+
+The classe variable has five possible outcomes:
+```
+A: Correctly performed
+
+B, C, D, E: Incorrectly performed in four distinct ways
+```
+The model needs to be robust, highly accurate, and provide a reliable estimate of its expected performance on unseen data (out-of-sample error).
+
+# 2. Data Loading and Preprocessing
+We begin by loading the training and testing datasets. A critical step in preprocessing this dataset is handling the numerous columns that contain mostly missing values (NA) or have near-zero variance. These columns provide no predictive power and can hinder model performance and efficiency. 
+```{r}
+setwd("C:\\Users\\PC\\Documents\\GitHub\\datasciencecoursera\\8. Practical Machine Learning\\Project")
+
+if (isFALSE(("pml-training.csv" %in% list.files(getwd())))) {
+        url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"
+        download.file(url, file.path(getwd(), "pml-training.csv"))
+        pml_training <- read.csv("pml-training.csv", row.names = 1, na.strings = c("NA", "#DIV/0!", ""))
+} else pml_training <- read.csv("pml-training.csv", row.names = 1, na.strings = c("NA", "#DIV/0!", ""))
+
+
+if (isFALSE(("pml-testing.csv" %in% list.files(getwd())))) {
+        url <- "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv"
+        download.file(url, file.path(getwd(), "pml-testing.csv"))
+        pml_testing <- read.csv("pml-testing.csv", row.names = 1, na.strings = c("NA", "#DIV/0!", ""))
+} else pml_testing <- read.csv("pml-testing.csv", row.names = 1, na.strings = c("NA", "#DIV/0!", ""))
+```
+## 2.1 Filtering Near-Zero Variance and Missing Data
+
+We filter the data based on two criteria:
+
+**Redundant/Identifier Columns:** Remove the first 6 columns which are identifiers (e.g., user_name, raw_timestamp_hex) and do not contribute to predicting the physical activity.
+
+*Missing Values (NA):** Remove columns that contain a high percentage of missing values. Given the nature of the data, we will remove any column with more than 60% missing data, as determined by an initial exploratory pass (many columns are almost entirely NA).
+
+```{r}
+pml_training <- pml_training[, -c(1:6)]
+pml_testing <- pml_testing[, -c(1:6)]
+```
+
+```{r}
+set.seed(42)
+na_ratio <- colSums(is.na(pml_training)) / nrow(pml_training)
+valid_cols <- names(na_ratio[na_ratio < 0.6]) # Keep columns with < 60% NA
+
+training_final <- pml_training[ ,valid_cols]
+
+training_final$classe <- as.factor(training_final$classe)
+
+intrain <- createDataPartition(y = training_final$classe, p = 0.7, list = FALSE)
+
+training_data <- training_final[intrain,]
+validate_data <- training_final[-intrain,]
+```
+
+# 3. Model Building: Random Forest
+
+## 3.1 Choice of Algorithm
+
+We chose the Random Forest algorithm for several key reasons:
+
+```
+High Accuracy: Random Forest (RF) is a non-linear ensemble method that typically yields high accuracy in complex classification tasks.
+
+Robustness to Overfitting: By building an ensemble of decision trees, RF is highly resistant to overfitting, even without aggressive hyperparameter tuning.
+
+Automatic Feature Selection: RF inherently handles irrelevant predictors and estimates variable importance, which is useful for interpretation.
+
+Efficiency: It runs quickly and efficiently on large datasets.
+```
+
+# 3.2 Training the Model
+Although Random Forest is an excellent algorithm, its primary drawback is its slow speed due to the numerous trees it builds. To address this, I chose to implement parallel processing instead of standard serial processing to distribute the computational load and significantly maximize efficiency during the training phase.
+```{r}
+cores <- detectCores()
+cl <- makeCluster(cores - 1) 
+registerDoParallel(cl)
+```
+
+```{r}
+set.seed(42)
+time_check <- system.time({
+      model_rf <- train(classe ~., 
+                  method = "rf", 
+                  data = training_data, 
+                  trControl = trainControl(method = "cv", number = 3)
+)
+})
+
+stopCluster(cl)
+time_check
+```
+
+# 3.3 Check model performance
+We must assess the model's performance. First, we use the predict function to determine the model's predicted outcomes on the validate_data. Subsequently, we use the confusionMatrix to calculate the final accuracy and evaluate the model's overall efficacy.
+```{r}
+pred_valid <- predict(model_rf, validate_data)
+```
+
+```{r}
+actual_labels <- validate_data$classe
+
+pred_valid <- factor(pred_valid)
+actual_labels <- factor(actual_labels)
+
+levels(pred_valid) <- levels(actual_labels)
+```
+
+```{r}
+cm_result <- confusionMatrix(data = pred_valid, reference = actual_labels)
+print(cm_result)
+```
+
+```
+Given that the model achieved an accuracy exceeding 99% on the validation data, we conclude that the model is well-trained and exhibits strong generalization capability.
+```
+
+# 3.4 Prediction testing data
+```{r}
+pred_final <- predict(model_rf, pml_testing[,-ncol(pml_testing)])
+print(pred_final)
+```
+
