@@ -1,0 +1,68 @@
+---
+title: "My Fancy Presentation"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## My new slide
+Plain text
+
+*italicized text*
+
+**Bold text**
+
+`for (i %in% 1:10)`
+
+***
+A slide without a title
+
+### A top level subheading
+
+#### A second level subheading
+
+## My Second Slide
+
+This slide shows that comment = "" remove ## in front of the data sets outcome
+
+```{r, comment = "", echo = TRUE}
+head(mtcars)
+```
+
+## My Third Slide
+
+This slide shows that eval = FALSE give no outcome
+```{r, comment = "", echo = TRUE, eval = FALSE}
+head(mtcars)
+```
+
+## My Fourth Slide
+
+This slide shows that fig.align moves plot to the centre of the slide and fig.cap shows the title of the plot
+```{r, echo = FALSE, fig.align='center', fig.cap='My Awesome figure'}
+plot(mtcars$wt, mtcars$mpg, xlab = "Weight", ylab = "MPG")
+```
+
+
+## Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+## Slide with R Output
+
+```{r cars, echo = TRUE}
+summary(cars)
+```
+
+## Slide with Plot
+
+```{r pressure}
+plot(pressure)
+```
+
