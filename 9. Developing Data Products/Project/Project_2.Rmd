@@ -1,0 +1,28 @@
+---
+title: "Project_2"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(stats)
+library(graphics)
+library(plotly)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Iris Scatterplot with colors
+
+```{r}
+plot_ly(iris, x = iris$Sepal.Length, y = iris$Petal.Length, type = "scatter", mode = "markers", color = as.factor(iris$Species))
+```
+## Iris Continous Color
+```{r}
+plot_ly(iris, x = iris$Sepal.Length, y = iris$Petal.Length, type = "scatter", mode = "lines", color = as.factor(iris$Species))
+```
+
+## Iris Boxplot
+```{r}
+plot_ly(iris, y = iris$Petal.Length, color = iris$Species, type = "box")
+```
