@@ -1,0 +1,60 @@
+---
+title: "Project_1"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r, echo = FALSE}
+library(leaflet)
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+my_map <- leaflet() %>% 
+  addTiles()
+```
+
+
+# My University
+```{r}
+univLatLong <- data.frame(lat = 43.7729946, lng = -79.4991)
+
+univLatLong %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addMarkers(popup = "York Universty")
+```
+
+# My house
+```{r}
+houseLatLong <- data.frame(lat = 43.7645, lng = -79.4140)
+
+houseLatLong %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addMarkers(popup = "Canada home")
+
+```
+
+# Both locations
+```{r}
+my_address <- data.frame(
+  lat = c(43.7729946, 43.7645),
+  lng = c(-79.4991, -79.4140)
+)
+
+my_map <- my_address %>% 
+  leaflet() %>% 
+  addTiles() %>% 
+  addMarkers(popup = c("York Universty", "Canada home"))
+
+my_map
+```
+# The boundary
+```{r}
+my_map %>% 
+ addRectangles(lat1 = 43.7729946, lng1 = -79.4991,
+                lat2 = 43.7645, lng2 = -79.4140)
+```
+
