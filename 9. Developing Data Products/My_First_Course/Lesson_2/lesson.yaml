@@ -1,0 +1,24 @@
+- Class: meta
+  Course: My First Course
+  Lesson: Lesson 2
+  Author: Yuchan Jeong
+  Type: Standard
+  Organization: Coursera
+  Version: 2.4.5
+
+- Class: mult_question
+  Output: Which of these shapes has four sides?
+  AnswerChoices: Square;Circle;Hexagon
+  CorrectAnswer: Square
+  AnswerTests: omnitest(correctVal= 'Square')
+  Hint: Square
+
+- Class: figure
+  Output: This is a simple graph
+  Figure: fig1.R
+  FigureType: new
+
+- Class: figure
+  Output: I added a line.
+  Figure: fig2.R
+  FigureType: add
