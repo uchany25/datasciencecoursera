@@ -1,0 +1,151 @@
+---
+title: "Iris Species Prediction with Machine Learning"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+
+## Introduction & Goal
+
+### **Description of Problem:** 
+
+In this project, we predict Species of Iris using four variables (Sepal.Length, Sepal.Width, Petal.Length, Petal.Width).
+
+
+### **Goal:**
+
+We are going to provide a Real-time prediction simulation through a Shiny application, comparing the performance of three different machine learning models: Random Forest (RF), Support Vector Machine (SVM), and K-Nearest Neighbors (KNN).
+
+## Used Package
+
+```{r, error=FALSE, message=FALSE}
+library(shiny)
+library(randomForest) # Random Forest Classification and Imputation
+library(e1071) # Support Vector Machine
+library(class) # K-nearest Neighbors
+library(caret) # Data Partitioning and Model Evaluation
+data(iris)
+```
+
+
+## Data & Preprocessing
+```{r}
+str(iris)
+```
+This data consists of 150 observations of 5 variables. 
+
+Sepal.Length, Sepal.Width, Petal.Length, and Petal.Width are numeric data, while Species is Factor data with three unique levels (setosa, versicolor, virginica).
+
+***
+```{r}
+set.seed(42)
+train_idx <- createDataPartition(iris$Species, p = 0.8, list = FALSE)
+train_iris <- iris[train_idx, ]
+test_iris <- iris[-train_idx, ]
+```
+By using **createDataPartition**, we divided the data into **80% for training** and the remaining **20% for testing**. 
+
+The training set is used for algorithm development, and the testing set is reserved for final, objective performance evaluation.
+
+## Imputation Strategy (Critical Feature)
+### **Minimum Input Guard:** 
+
+We implemented a condition where the user **must input at least two variables** (by changing the sliders). 
+
+If fewer than two are provided, the app shows an error, preventing unreliable single-input predictions.
+
+### **Dynamic Imputation:** 
+
+If two or three variables are missing, the values are **imputed (predicted)** using **Random Forest Regression models** trained on the other three variables. 
+
+This allows the classifier models (RF, SVM, KNN) to proceed without missing data.
+
+
+## Model Architecture
+#### 1. **Random Forest (RF):** 
+
+We chose this model because it is an ensemble method using many decision trees, known for its high accuracy and robustness against overfitting.
+
+#### 2. **Support Vector Machine (SVM):** 
+
+It finds the optimal hyperplane to distinguish data. A key feature in our app is the ability to select the kernel options (linear or radial) to explore both linear and non-linear classification boundaries.
+
+#### 3. **K-Nearest Neighbors (KNN):** 
+
+This is a non-parametric, instance-based learning model. It classifies a data point by a majority vote of its $K$ nearest neighbors in the training dataset.
+
+
+## Model Evaluation
+
+```{r}
+# RF Model Training (Assumed in global.R)
+model_rf <- randomForest(Species ~., data = train_iris)
+
+# SVM Model Training (Linear & Radial, assumed in global.R)
+model_svm_linear <- svm(Species ~., data = train_iris, kernel = "linear")
+model_svm_radial <- svm(Species ~., data = train_iris, kernel = "radial")
+
+# KNN Training data assumed from global.R
+knn_train_data <- train_iris[, 1:4]
+knn_train_labels <- train_iris$Species
+```
+
+***
+
+#### randomForest Prediction Accuracy
+```{r}
+rf_predictions <- predict(model_rf, test_iris)
+confusionMatrix(rf_predictions, test_iris$Species)$overall["Accuracy"]
+```
+
+#### KNN Prediction Accuracy
+```{r}
+knn_predictions <- knn(
+    train = knn_train_data, 
+    test = test_iris[, 1:4],
+    cl = knn_train_labels,
+    k = 5 
+)
+
+confusionMatrix(knn_predictions, test_iris$Species)$overall["Accuracy"]
+```
+
+***
+
+#### SVM with linear kernel Prediction Accuracy
+```{r}
+svm_lin_predictions <- predict(model_svm_linear, test_iris)
+confusionMatrix(svm_lin_predictions, test_iris$Species)$overall["Accuracy"]
+
+```
+
+#### SVM with raidal kernel Prediction Accuracy
+```{r}
+svm_rad_predictions <- predict(model_svm_radial, test_iris)
+confusionMatrix(svm_rad_predictions, test_iris$Species)$overall["Accuracy"]
+```
+
+All models performed well, with their accuracy scores consistently above the 85% threshold.
+
+## App Demonstration
+
+#### **Real-time Prediction:** 
+The Shiny app provides instant prediction updates as the user manipulates the sliders for the four flower measurements.
+
+#### **Model Comparison:** 
+Users can easily compare the results across the three models using the tabbed interface.
+
+#### **Dynamic Kernel Selection:** 
+The SVM tab allows the user to switch between the Linear and Radial kernels, demonstrating how the model's prediction changes based on the decision boundary type.
+
+#### **Imputation Guard:** 
+If a user only changes one slider, the app triggers the custom error message: "ERROR: Please input data for at least 2 variables (change 2 sliders)."
+
+## Conclusion & Next Steps
+
+### **Conclusion:**
+We successfully developed a robust Shiny application that demonstrates and compares three distinct classification models (RF, SVM, KNN) for Iris species prediction. The app features critical data science components like data partitioning and dynamic imputation with built-in safeguards.
+
+### **Next Steps:**
+
+Model Hyperparameter Tuning: Use caret::train with cross-validation to optimize hyperparameters (e.g., $K$ for KNN, $C$ and $\gamma$ for SVM) to find the absolute best performing model configuration.Uncertainty Visualization: Add a feature to the app to visualize the prediction probability or model confidence score for the predicted species.
