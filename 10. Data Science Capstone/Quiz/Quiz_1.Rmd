@@ -1,0 +1,99 @@
+---
+title: "Quiz_1"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r, eval = FALSE, echo = FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(error = FALSE)
+```
+
+
+#1
+The $en_US.blogs.txt$ file is how many megabytes?
+```{r}
+setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz")
+
+if (isFALSE(("SwiftKey.zip" %in% list.files(getwd())))) {
+  url <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+      download.file(url, file.path(getwd(), "SwiftKey.zip"))
+      unzip(zipfile = "SwiftKey.zip")
+      setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz/final/en_US")
+      en_US_blogs <- readLines("en_US.blogs.txt")
+} else setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz/final/en_US"); en_US_blogs <- readLines("en_US.blogs.txt")
+
+file.info("en_US.blogs.txt")$size / 1024 / 1024
+```
+
+#2
+The $en_US.twitter.txt$ has how many lines of text?
+```{r}
+setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz")
+
+if (isFALSE(("SwiftKey.zip" %in% list.files(getwd())))) {
+  url <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+      download.file(url, file.path(getwd(), "SwiftKey.zip"))
+      unzip(zipfile = "SwiftKey.zip")
+      setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz/final/en_US")
+      en_US_twitter <- readLines("en_US.twitter.txt", encoding = "UTF-8")
+} else setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz/final/en_US"); en_US_twitter <- readLines("en_US.twitter.txt", encoding = "UTF-8")
+
+length(en_US_twitter)
+```
+#3
+What is the length of the longest line seen in any of the three en_US data sets? 
+```{r}
+setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz")
+
+if (isFALSE(("SwiftKey.zip" %in% list.files(getwd())))) {
+  url <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+      download.file(url, file.path(getwd(), "SwiftKey.zip"))
+      unzip(zipfile = "SwiftKey.zip")
+      setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz/final/en_US")
+      en_US_news <- readLines("en_US.news.txt", encoding = "UTF-8")
+} else setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Quiz/final/en_US"); en_US_news <- readLines("en_US.news.txt", encoding = "UTF-8")
+```
+```{r}
+max_blogs <- max(nchar(en_US_blogs), na.rm = TRUE)
+max_news <- max(nchar(en_US_news), na.rm = TRUE)
+max_twitter <- max(nchar(en_US_twitter), na.rm = TRUE)
+
+max_lengths_by_file <- c(
+  "en_US.blogs.txt" = max_blogs,
+  "en_US.news.txt" = max_news,
+  "en_US.twitter.txt" = max_twitter
+)
+
+longest_file_name <- names(which.max(max_lengths_by_file))
+longest_count <- max(max_lengths_by_file)
+
+cat("The length of the longest line:", longest_count, "\n")
+cat("The file name of the longest line:", longest_file_name, "\n")
+```
+#4
+In the en_US twitter data set, if you divide the number of lines where the word "love" (all lowercase) occurs by the number of lines the word "hate" (all lowercase) occurs, about what do you get?
+```{r}
+love_lines_index <- grep("love", en_US_twitter, fixed = TRUE)
+twit_love_linenum <- length(love_lines_index)
+
+hate_lines_index <- grep("hate", en_US_twitter, fixed = TRUE)
+twit_hate_linenum <- length(hate_lines_index)
+
+twit_love_linenum/twit_hate_linenum
+```
+#5
+The one tweet in the en_US twitter data set that matches the word "biostats" says what?
+```{r}
+grep("biostats", en_US_twitter, value = TRUE, fixed = TRUE)
+```
+
+#6
+How many tweets have the exact characters "A computer once beat me at chess, but it was no match for me at kickboxing". (I.e. the line matches those characters exactly.)
+
+```{r}
+exact_line <- "A computer once beat me at chess, but it was no match for me at kickboxing"
+length(grep(paste0("^", exact_line, "$"), en_US_twitter, perl = TRUE))
+```
+
