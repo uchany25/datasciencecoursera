@@ -1,0 +1,155 @@
+---
+title: "Milestone Report"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r package, error = FALSE, warning = FALSE, echo = FALSE}
+library(stringr)
+library(knitr)
+library(ggplot2)
+```
+
+
+This Milestone Report details the Exploratory Data Analysis (EDA) performed on the SwiftKey data corpus, the foundational step for developing a next-word prediction algorithm. The primary goal is to understand the major features of the data through basic summary statistics and visualizations, and to outline the plan for the final prediction algorithm and Shiny application.
+
+```{r, error = FALSE, warning = FALSE}
+setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Project")
+
+if (isFALSE(("SwiftKey.zip" %in% list.files(getwd())))) {
+  url <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+      download.file(url, file.path(getwd(), "SwiftKey.zip"))
+      unzip(zipfile = "SwiftKey.zip")
+      setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Project/final/en_US")
+      en_US_blogs <- readLines("en_US.blogs.txt")
+      en_US_twitter <- readLines("en_US.twitter.txt", encoding = "UTF-8")
+      en_US_news <- readLines("en_US.news.txt", encoding = "UTF-8")
+} else setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Project/final/en_US"); en_US_blogs <- readLines("en_US.blogs.txt"); en_US_twitter <- readLines("en_US.twitter.txt", encoding = "UTF-8"); en_US_news <- readLines("en_US.news.txt", encoding = "UTF-8")
+```
+## Exploratory Data Analysis for Line Count
+```{r}
+blogs_lines <- length(en_US_blogs)
+news_lines <- length(en_US_news)
+twitter_lines <- length(en_US_twitter)
+
+line_counts <- c(
+  blogs = blogs_lines,
+  news = news_lines,
+  twitter = twitter_lines
+)
+
+print(format(line_counts, big.mark = ","))
+```
+## Exploratory Data Analysis for Longest Line Length
+```{r}
+blogs_max_len <- max(nchar(en_US_blogs, type = "bytes"))
+news_max_len <- max(nchar(en_US_news, type = "bytes"))
+twitter_max_len <- max(nchar(en_US_twitter, type = "bytes"))
+
+max_line_lengths <- c(
+  blogs = blogs_max_len,
+  news = news_max_len,
+  twitter = twitter_max_len
+)
+
+print(format(max_line_lengths, big.mark = ","))
+```
+
+## Exploratory Data Analysis for Word Count
+```{r}
+approx_word_count <- function(text_data) {
+  sum(str_count(text_data, " ") + 1)
+}
+
+blogs_word_count <- approx_word_count(en_US_blogs)
+news_word_count <- approx_word_count(en_US_news)
+twitter_word_count <- approx_word_count(en_US_twitter)
+
+total_word_counts <- c(
+  blogs = blogs_word_count,
+  news = news_word_count,
+  twitter = twitter_word_count
+)
+print(format(total_word_counts, big.mark = ","))
+```
+## Summary Table
+```{r}
+data.frame(
+  Source = c("Blogs", "News", "Twitter"),
+  Line_Count = line_counts,
+  Max_Line_Length = max_line_lengths,
+  Approx_Word_Count = total_word_counts
+)
+```
+
+## Plot
+```{r, warning = FALSE}
+# Function to calculate word count per line
+word_count_per_line <- function(data) {
+    # Using stringr::str_count to count non-space sequences as words
+    str_count(data, "\\S+")
+}
+
+# Calculate word counts for a sample (since the full dataset is huge)
+set.seed(42) # For reproducibility
+sample_size <- 10000 # Use a smaller sample for faster plotting
+
+blogs_wc <- word_count_per_line(sample(en_US_blogs, sample_size))
+news_wc <- word_count_per_line(sample(en_US_news, sample_size))
+twitter_wc <- word_count_per_line(sample(en_US_twitter, sample_size))
+
+# Combine into a data frame for ggplot
+wc_data <- data.frame(
+    Source = rep(c("Blogs", "News", "Twitter"), 
+                 times = c(length(blogs_wc), length(news_wc), length(twitter_wc))),
+    Word_Count = c(blogs_wc, news_wc, twitter_wc)
+)
+
+# Plot the histogram
+ggplot(wc_data, aes(x = Word_Count, fill = Source)) +
+    geom_histogram(binwidth = 10, position = "identity", alpha = 0.6) +
+    xlim(0, 150) + # Limit x-axis for better visibility of the main distributions
+    facet_wrap(~Source, scales = "free_y") +
+    labs(title = "Distribution of Line Lengths (Words per Line)",
+         x = "Word Count per Line",
+         y = "Frequency") +
+    theme_minimal()
+```
+
+```{r}
+# You'll need the 'tm' (Text Mining) and 'RWeka' (for N-grams) packages later,
+# but for a basic report, a simple plot of unigrams is great.
+
+# 1. Sample and combine the data (for example, take 5% of each source)
+sample_data <- c(
+    sample(en_US_blogs, length(en_US_blogs) * 0.05),
+    sample(en_US_news, length(en_US_news) * 0.05),
+    sample(en_US_twitter, length(en_US_twitter) * 0.05)
+)
+
+# 2. Basic cleaning (Convert to Corpus, to lower, remove punctuation, numbers)
+# The 'tm' package is the standard tool here.
+
+# 3. Create a Document-Term Matrix (DTM) and find word frequencies
+# *Simplified example using string manipulation to illustrate the goal*
+
+# A more robust approach involves 'tm' and 'data.table' but for simplicity:
+all_words <- unlist(strsplit(tolower(sample_data), "\\s+"))
+# Filter out empty strings and common punctuation
+all_words <- all_words[grep("^[a-z]+$", all_words)] 
+
+word_freqs <- sort(table(all_words), decreasing = TRUE)
+top_words <- head(word_freqs, 20)
+
+top_words_df <- data.frame(Word = names(top_words), Frequency = as.numeric(top_words))
+
+# Plot the top words
+ggplot(top_words_df, aes(x = reorder(Word, -Frequency), y = Frequency)) +
+    geom_bar(stat = "identity", fill = "steelblue") +
+    labs(title = "Top 20 Most Frequent Words (Unigrams)",
+         x = "Word",
+         y = "Frequency") +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
