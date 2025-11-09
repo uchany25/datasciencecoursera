@@ -1,0 +1,248 @@
+---
+title: "Quiz_2"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(quanteda)
+library(stringr)
+library(knitr)
+library(tm)
+library(wordcloud)
+library(tidytext)
+```
+
+```{r, error = FALSE, warning = FALSE}
+setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Project")
+
+if (isFALSE(("SwiftKey.zip" %in% list.files(getwd())))) {
+  url <- "https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip"
+      download.file(url, file.path(getwd(), "SwiftKey.zip"))
+      unzip(zipfile = "SwiftKey.zip")
+      setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Project/final/en_US")
+      en_US_blogs <- readLines("en_US.blogs.txt")
+      en_US_twitter <- readLines("en_US.twitter.txt", encoding = "UTF-8")
+      en_US_news <- readLines("en_US.news.txt", encoding = "UTF-8")
+} else setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Project/final/en_US"); en_US_blogs <- readLines("en_US.blogs.txt"); en_US_twitter <- readLines("en_US.twitter.txt", encoding = "UTF-8"); en_US_news <- readLines("en_US.news.txt", encoding = "UTF-8")
+```
+
+```{r, warning = FALSE, echo = FALSE}
+# This is from Cesine's github. We download bad-words from github.
+setwd("C:/Users/PC/Documents/GitHub/datasciencecoursera/10. Data Science Capstone/Project")
+
+if (isFALSE(("bad_words" %in% list.files(getwd())))) {
+  url_bad_words <- "https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/en"
+ download.file(url_bad_words, file.path(getwd(), "en.txt"))
+ bad_words <- readLines("en.txt")
+ } else bad_words <- readLines("en.txt")
+```
+
+```{r}
+set.seed(42)
+sample_data <- c(sample(en_US_blogs, length(en_US_blogs) * 0.1),   
+                 sample(en_US_news, length(en_US_news) * 0.1), 
+                 sample(en_US_twitter, length(en_US_twitter) * 0.1))
+```
+
+```{r}
+text_df <- tibble(line = 1:length(sample_data), text = sample_data) %>%
+mutate(text = iconv(text, "latin1", "ASCII", sub="")) %>%
+filter(text != "") %>%
+mutate(text = str_replace_all(text, "http\\S+|www\\.\\S+", "")) %>% mutate(text = str_replace_all(text, "[[:digit:]]+", "")) %>%
+mutate(text = str_replace_all(text, "[^[:alnum:][:space:].?!]+", " ")) %>%
+mutate(text = str_replace_all(text, "([.?!])", "\\1 ")) %>%
+mutate(text = str_squish(text)) %>%
+filter(text != "")
+
+# Unigrams
+unigrams <- text_df %>%
+unnest_tokens(word, text, token = "words") %>%
+filter(!word %in% stop_words$word) %>%
+filter(!word %in% bad_words) %>%
+count(word, sort = TRUE) %>%
+rename(word1 = word, count = n)
+
+# Bigrams
+bigrams <- text_df %>%
+unnest_tokens(bigram, text, token = "ngrams", n = 2) %>%
+separate(bigram, c("word1", "word2"), sep = " ") %>%
+filter(!word1 %in% bad_words, !word2 %in% bad_words) %>%
+count(word1, word2, sort = TRUE) %>%
+rename(count = n)
+
+# Trigrams
+trigrams <- text_df %>%
+unnest_tokens(trigram, text, token = "ngrams", n = 3) %>%
+separate(trigram, c("word1", "word2", "word3"), sep = " ") %>%
+filter(!word1 %in% bad_words, !word2 %in% bad_words, !word3 %in% bad_words) %>%
+count(word1, word2, word3, sort = TRUE) %>%
+rename(count = n)
+
+# Quadgrams (4-gram)️
+quadgrams <- text_df %>%
+unnest_tokens(quadgram, text, token = "ngrams", n = 4) %>%
+separate(quadgram, c("word1", "word2", "word3", "word4"), sep = " ") %>%
+filter(!word1 %in% bad_words, !word2 %in% bad_words, !word3 %in% bad_words, !word4 %in% bad_words) %>%
+count(word1, word2, word3, word4, sort = TRUE) %>%
+rename(count = n)
+
+cat("TidyText N-gram dataframe create complete (1g, 2g, 3g, 4g)")
+```
+
+```{r}
+predict_specific_word <- function(fragment, candidates, df_4g, df_3g, df_2g, df_1g) {
+  clean_fragment <- tolower(fragment)
+  clean_fragment <- gsub("[[:punct:]]", " ", clean_fragment)
+  words <- unlist(strsplit(clean_fragment, "[[:space:]]+"))
+  words <- words[words != ""]
+  words <- words[!(words %in% bad_words)]
+  n_words <- length(words)
+  
+# Data frame for saving predicted results
+  results_df <- tibble(word = character(), count = numeric(), level = character())
+  
+# 1. Quadgram (4-gram) Prediction
+  if (n_words >= 3) {
+    w1 <- words[n_words - 2]
+    w2 <- words[n_words - 1]
+    w3 <- words[n_words]
+    prediction_4g <- df_4g %>%
+      filter(word1 == w1, word2 == w2, word3 == w3, word4 %in% candidates) %>%
+      slice_max(order_by = count, n = 1)
+    
+    if (nrow(prediction_4g) > 0) {
+      return(tibble(word = prediction_4g$word4, count = prediction_4g$count, level = "4-gram"))
+    }
+  }
+  
+# 2. Trigram (3-gram) Prediction
+  if (n_words >= 2) {
+    w2 <- words[n_words - 1]
+    w3 <- words[n_words]
+    prediction_3g <- df_3g %>%
+      filter(word1 == w2, word2 == w3, word3 %in% candidates) %>%
+      slice_max(order_by = count, n = 1)
+    
+    if (nrow(prediction_3g) > 0) {
+      return(tibble(word = prediction_3g$word3, count = prediction_3g$count, level = "3-gram"))
+    }
+  }
+  
+# 3. Bigram (2-gram) Prediction
+  if (n_words >= 1) {
+    w3 <- words[n_words]
+    prediction_2g <- df_2g %>%
+      filter(word1 == w3, word2 %in% candidates) %>%
+      slice_max(order_by = count, n = 1)
+    
+    if (nrow(prediction_2g) > 0) {
+      return(tibble(word = prediction_2g$word2, count = prediction_2g$count, level = "2-gram"))
+    }
+  }
+  
+# 4. Unigram (1-gram) Prediction)
+  prediction_1g <- df_1g %>%
+    filter(word1 %in% candidates) %>%
+    slice_max(order_by = count, n = 1)
+  
+  if (nrow(prediction_1g) > 0) {
+    return(tibble(word = prediction_1g$word1, count = prediction_1g$count, level = "1-gram"))
+  }
+  
+# If there is no predicticted words among the candiates words
+  return(tibble(word = "No word", count = NA_real_, level = "N/A"))
+}
+```
+
+###Q1
+```{r}
+fragment_1 <- "The guy in front of me just bought a pound of bacon, a bouquet, and a case of"
+candidates_1 <- c("cheese", "beer", "pretzels", "soda")
+predicted_df_1 <- predict_specific_word(fragment_1, candidates_1, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_1)
+```
+###Q2
+```{r}
+fragment_2 <- "You're the reason why I smile everyday. Can you follow me please? It would mean the"
+candidates_2 <- c("world", "most", "universe", "best")
+predicted_df_2 <- predict_specific_word(fragment_2, candidates_2, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_2)
+```
+
+###Q3
+```{r}
+fragment_3 <- "Hey sunshine, can you follow me and make me the"
+candidates_3 <- c("smelliest", "happiest", "saddest", "bluest")
+predicted_df_3 <- predict_specific_word(fragment_3, candidates_3, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_3)
+```
+
+###Q4
+```{r}
+fragment_4 <- "Very early observations on the Bills game: Offense still struggling but the"
+candidates_4 <- c("referees", "players", "crowd", "defense")
+predicted_df_4 <- predict_specific_word(fragment_4, candidates_4, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_4)
+```
+
+###Q5
+```{r}
+fragment_5 <- "Go on a romantic date at the"
+candidates_5 <- c("beach", "grocery", "movies", "mall")
+predicted_df_5 <- predict_specific_word(fragment_5, candidates_5, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_5)
+```
+
+###Q6
+```{r}
+fragment_6 <- "Well I'm pretty sure my granny has some old bagpipes in her garage I'll dust them off and be on my"
+candidates_6 <- c("phone", "motorcycle", "horse", "way")
+predicted_df_6 <- predict_specific_word(fragment_6, candidates_6, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_6)
+```
+
+###Q7
+```{r}
+fragment_7 <- "Ohhhhh #PointBreak is on tomorrow. Love that film and haven't seen it in quite some"
+candidates_7 <- c("time", "weeks", "thing", "years")
+predicted_df_7 <- predict_specific_word(fragment_7, candidates_7, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_7)
+```
+
+###Q8
+```{r}
+fragment_8 <- "After the ice bucket challenge Louis will push his long wet hair out of his eyes with his little"
+candidates_8 <- c("eyes", "finger", "toe", "ears")
+predicted_df_8 <- predict_specific_word(fragment_8, candidates_8, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_8)
+```
+
+###Q9
+```{r}
+fragment_9 <- "Be grateful for the good times and keep the faith during the"
+candidates_9 <- c("hard", "worse", "sad", "bad")
+predicted_df_9 <- predict_specific_word(fragment_9, candidates_9, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_9)
+```
+
+###Q10
+```{r}
+fragment_10 <- "If this isn't the cutest thing you've ever seen, then you must be"
+candidates_10 <- c("insane", "asleep", "insensitive", "callous")
+predicted_df_10 <- predict_specific_word(fragment_10, candidates_10, quadgrams, trigrams, bigrams, unigrams)
+
+print(predicted_df_10)
+```
