@@ -1,0 +1,116 @@
+---
+title: "N-gram Word Predictor"
+author: "Yuchan Jeong"
+date: "`r Sys.Date()`"
+output: ioslides_presentation
+---
+## Project Goal: The Next Word Predictor
+
+### **What We Built**
+
+* A **Shiny application** that predicts the next word in a sentence fragment.
+* The model is built using **N-gram analysis** on massive text corpora.
+
+### **Goal**
+To demonstrate a practical application of **Natural Language Processing (NLP)** and text mining techniques.
+
+## Data & Sources (1/2)
+
+### **Corpus Sources (SwiftKey Dataset)**
+
+The model is trained on three distinct English text sources:
+
+* **Blogs (`en_US.blogs.txt`):** Casual, long-form content.
+* **News (`en_US.news.txt`):** Formal, edited journalistic content.
+* **Twitter (`en_US.twitter.txt`):** Short, informal, and often unedited snippets. (The data cleaning challenge!)
+
+**Download URL**: https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip
+
+## Data & Sources (2/2)
+
+### **Data Handling**
+
+* The code manages the **download, unzip, and reading** of these large files.
+* **Sampling:** A crucial step to balance performance and accuracy.
+
+### **Bad Words Filtering**
+* A dedicated list of offensive words (`bad_words`) is used. **You can filter this content** to keep the predictions clean.
+
+**Bad Words URL**: https://raw.githubusercontent.com/LDNOOBW/List-of-Dirty-Naughty-Obscene-and-Otherwise-Bad-Words/master/en
+
+
+
+## Algorithm 1: Back-off Method
+
+### **Frequency-based Approach**
+
+| Feature | Description |
+|:---|:---|
+| **Concept** | If a higher-order N-gram fails, the model **"backs off"** to the next lower order (e.g., 4-gram) until a match is found. |
+| **Prediction** | Selects the word with the **highest raw frequency (count)** at the matched N-gram level. |
+| **Pros** | Simple, fast, and effective for very common phrases. |
+| **Cons** | Can be easily misled by infrequent but valid phrases. |
+
+
+
+## Algorithm 2: Kneser-Ney Smoothing
+
+
+### **The Smoothed Approach**
+
+| Feature | Description |
+|:---|:---|
+|**Concept** | A robust technique using **continuation probability**. It models how likely a word is to appear *in a new context*. |
+|**Intuition** | It doesn't favor words that appear often in *one* specific context (like "San Francisco"). It rewards words that are versatile. |
+|**Prediction** | Selects the word with the highest **smoothed (Kneser-Ney) score**, which generally improves accuracy on real-world, unseen text. |
+
+## Using the App (1/3): Configuration
+
+### **Configuration Steps: Data & Filters**
+| # | Setting | Recommendation | Note |
+|:---:|:---|:---|:---|
+| 1 | **Data Sources** | Blogs, News, & Twitter | Use all for the broadest training context. |
+| 2 | **Sampling %** | **30%** | The best balance between size and training time. |
+| 3 | **Stop Word Removal** | **Bad Words Only** (Default) | Keeps common words essential for N-gram context. |
+
+## Using the App (2/3): Model & Training
+
+### **Configuration Steps: Model & Training**
+
+| # | Setting | Key Choice | Note |
+|:---:|:---|:---|:---|
+| 4 | **Smoothing Method** | **Back-off** or **Kneser-Ney** | Choose performance vs. theoretical accuracy. (KN is usually superior.) |
+| 5 | **Maximum N-gram** | **6-gram** (Fixed) | The highest context level we search. |
+| 6 | **Train the Model** | Click the **"Generate N-grams (Train Model)"** button. | Wait until the **Model Status** shows **"✅ Model TRAINED!"** (Patience is key).
+|
+
+## Prediction in Action (3/3)
+
+### **Input & Prediction**
+
+| # | Setting | Key Choice | Note |
+|:---:|:---|:---|:---|
+| 7 |  **Enter Sentence Fragment:** | Type your partial sentence. | *Example:* "Talking to your mom has the same effect as a hug and helps reduce your" |
+| 8 | **Candidate Words (Optional):** | Restrict results (e.g., `stress, hunger, sleepiness`). | If blank, the Top 1000 unigram words are used. |
+| 9 | Click **"Predict Next Word"**. | |
+
+## **Output Analysis**
+
+The result panel shows the prediction and the match source:
+
+* **Prediction** (The suggested word).
+
+* **Level** (e.g., `KN 5-gram` or `3-gram`).
+
+* **Context Words** (The specific words used for the match).
+
+* **Score** (Frequency or KN Term).
+
+## Thank You!
+
+This project successfully integrates big data handling, advanced NLP techniques, and a user-friendly Shiny interface.
+
+* **The Code:** Available on [github.com/uchany25]
+
+### **A Note on KN:**
+The Kneser-Ney implementation uses a simplified term for optimal app speed, balancing theoretical rigor with practical responsiveness.
