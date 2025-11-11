@@ -1,0 +1,12 @@
+name: Ngram_Word_Predictor_Yuchan_Jeong
+title: Ngram_Word_Predictor_Yuchan_Jeong
+username: p2qy4x-yuchan-jeong
+account: p2qy4x-yuchan-jeong
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16031887
+bundleId: 11163335
+url: https://p2qy4x-yuchan-jeong.shinyapps.io/Ngram_Word_Predictor_Yuchan_Jeong/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
