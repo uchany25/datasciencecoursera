@@ -40,9 +40,9 @@ if (isFALSE(("bad_words" %in% list.files(getwd())))) {
 
 ```{r}
 set.seed(42)
-sample_data <- c(sample(en_US_blogs, length(en_US_blogs) * 0.3), 
-                 sample(en_US_news, length(en_US_news) * 0.3),
-                 sample(en_US_twitter, length(en_US_twitter) * 0.3))
+sample_data <- c(sample(en_US_blogs, length(en_US_blogs) * 0.1), 
+                 sample(en_US_news, length(en_US_news) * 0.1),
+                 sample(en_US_twitter, length(en_US_twitter) * 0.1))
 
 sample_data_clean <- tibble(text = sample_data) %>%
 mutate(text = iconv(text, "latin1", "ASCII", sub="")) %>%
@@ -187,7 +187,7 @@ print(predicted_df_2)
 
 ```{r}
 fragment_3 <- "I'd give anything to see arctic monkeys this"
-candidates_3 <- c("decade", "weekend", "month", "morning")
+candidates_3 <- c("weekend", "month", "morning", "decade")
 predicted_df_3 <- predict_specific_word_dt(fragment_3, candidates_3, sextgrams, quintgrams, quadgrams, trigrams, bigrams, unigrams)
 
 print(predicted_df_3)
