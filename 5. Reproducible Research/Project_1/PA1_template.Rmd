@@ -1,5 +1,5 @@
 ---
-title: "Reproducible Research Project 1"
+title: "Activity Data Analysis"
 author: "Yuchan Jeong"
 date: Sys.Date()
 ---
@@ -77,12 +77,27 @@ head(df_filled)
 ```
 
 4. Make a histogram of the total number of steps taken each day and calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
 ```{r}
-hist(df$steps, xlab = "steps", main = "Daily steps", col = "skyblue")
+Total_steps_filled <- tapply(df_filled$steps, df_filled$date, sum)
+Total_steps_filled <- data.frame(date = names(Total_steps_filled), 
+                                 total_steps = as.numeric(Total_steps_filled))
 ```
 
 ```{r}
-t(data.frame(row.names = c("Median", "Mean"), WithNA = (as.numeric(summary(Total_steps$total_steps), na.rm = TRUE)[3:4]), WithoutNA = (as.numeric(summary(df$steps)[3:4]))))
+hist(Total_steps_filled$total_steps, 
+     xlab = "Total steps (Imputed)", 
+     ylab = "Count", 
+     main = "Total steps histogram with Imputed Data", 
+     col = "darkblue", 
+     breaks = 30, 
+     xlim = c(0, 25000))
+```
+
+```{r}
+t(data.frame(row.names = c("Median", "Mean"), 
+             WithNA = as.numeric(summary(Total_steps$total_steps)[3:4]), 
+             WithoutNA = as.numeric(summary(Total_steps_filled$total_steps)[3:4])))
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
